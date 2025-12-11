@@ -12,6 +12,19 @@ import dagre from 'dagre';
 import axios from 'axios';
 import AddRelativeModal from './AddRelativeModal';
 
+const PortraitNode = ({ data }) => (
+  <div className="flex flex-col items-center bg-gray-800 p-2 rounded border border-emerald-500 w-32">
+    {data.profile_picture ? (
+      <img src={data.profile_picture} className="w-16 h-16 rounded-full object-cover mb-2" alt="Profile" />
+    ) : (
+      <div className="w-16 h-16 rounded-full bg-gray-700 mb-2" />
+    )}
+    <div className="text-white text-xs font-bold text-center">{data.label}</div>
+  </div>
+);
+
+const nodeTypes = { portrait: PortraitNode };
+
 // 1. The Layout Engine Setup
 const getLayoutedElements = (nodes, edges) => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -67,7 +80,11 @@ export default function FamilyTreeCanvas() {
       // We need to format them for ReactFlow
       const rawNodes = res.data.nodes.map(n => ({
         id: n.id,
-        data: { label: n.label }, // We can make custom Node components later for images!
+        type: 'portrait',  // Use custom node type
+        data: {
+          label: n.label,
+          profile_picture: n.profile_picture  // Pass image URL
+        },
         position: { x: 0, y: 0 } // Placeholder, Dagre will fix this
       }));
 
@@ -99,7 +116,11 @@ export default function FamilyTreeCanvas() {
 
     const rawNodes = res.data.nodes.map(n => ({
       id: n.id,
-      data: { label: n.label },
+      type: 'portrait',
+      data: {
+        label: n.label,
+        profile_picture: n.profile_picture
+      },
       position: { x: 0, y: 0 }
     }));
 
@@ -122,6 +143,7 @@ export default function FamilyTreeCanvas() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick} // <--- Added this!
