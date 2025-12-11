@@ -37,16 +37,19 @@ export default function Register() {
         <input
           type="text" placeholder="Username"
           className="w-full mb-4 p-3 bg-gray-900 rounded border border-gray-600 focus:border-emerald-500 outline-none"
+          value={formData.username}
           onChange={e => setFormData({...formData, username: e.target.value})}
         />
         <input
           type="email" placeholder="Email"
           className="w-full mb-4 p-3 bg-gray-900 rounded border border-gray-600 focus:border-emerald-500 outline-none"
+          value={formData.email}
           onChange={e => setFormData({...formData, email: e.target.value})}
         />
         <input
           type="password" placeholder="Password"
           className="w-full mb-6 p-3 bg-gray-900 rounded border border-gray-600 focus:border-emerald-500 outline-none"
+          value={formData.password}
           onChange={e => setFormData({...formData, password: e.target.value})}
         />
         <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 p-3 rounded font-bold transition-colors">
