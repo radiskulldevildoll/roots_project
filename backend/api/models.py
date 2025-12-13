@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User
 import uuid
 
 class Person(models.Model):
@@ -53,7 +54,12 @@ class Relationship(models.Model):
     end_date = models.DateField(null=True, blank=True)
 
     # This allows us to add children to a specific COUPLE, not just a person
-    children = models.ManyToManyField(Person, through='ParentChildLink', related_name='parents_relationship')
+    children = models.ManyToManyField(
+        Person, 
+        through='ParentChildLink', 
+        through_fields=('relationship', 'child'),
+        related_name='parents_relationship'
+    )
 
 class ParentChildLink(models.Model):
     """
@@ -74,3 +80,83 @@ class ParentChildLink(models.Model):
     single_parent = models.ForeignKey(Person, null=True, blank=True, related_name='single_children', on_delete=models.SET_NULL)
 
     link_type = models.CharField(max_length=3, choices=LinkType.choices, default=LinkType.BIOLOGICAL)
+
+
+class Story(models.Model):
+    """
+    Family stories and memories that can be shared and tagged with people.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    title = models.CharField(max_length=200)
+    content = models.TextField(help_text="Story content in Markdown format")
+    
+    # Who wrote this story
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='stories')
+    
+    # People mentioned/tagged in this story
+    tagged_people = models.ManyToManyField(Person, related_name='stories', blank=True)
+    
+    # When did this story/event happen
+    event_date = models.DateField(null=True, blank=True)
+    event_date_fuzzy = models.CharField(max_length=50, blank=True)
+    
+    # Privacy settings
+    is_public = models.BooleanField(default=False, help_text="Can non-family members view this?")
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name_plural = "Stories"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return self.title
+
+
+class Media(models.Model):
+    """
+    Photos, videos, documents, and other media files.
+    """
+    class MediaType(models.TextChoices):
+        PHOTO = 'PHO', _('Photo')
+        VIDEO = 'VID', _('Video')
+        DOCUMENT = 'DOC', _('Document')
+        AUDIO = 'AUD', _('Audio')
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # The actual file
+    file = models.FileField(upload_to='media/%Y/%m/')
+    media_type = models.CharField(max_length=3, choices=MediaType.choices, default=MediaType.PHOTO)
+    
+    # Who uploaded this
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='uploaded_media')
+    
+    # People in this photo/video
+    tagged_people = models.ManyToManyField(Person, related_name='media', blank=True)
+    
+    # When was this taken/created
+    media_date = models.DateField(null=True, blank=True)
+    media_date_fuzzy = models.CharField(max_length=50, blank=True)
+    
+    # Location
+    location = models.CharField(max_length=200, blank=True)
+    
+    # Associated story
+    story = models.ForeignKey(Story, on_delete=models.SET_NULL, null=True, blank=True, related_name='media_items')
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name_plural = "Media"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return self.title

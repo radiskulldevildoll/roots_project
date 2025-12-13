@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { endpoints } from '../../utils/config';
 
 export default function Register() {
   const router = useRouter();
@@ -12,10 +13,10 @@ export default function Register() {
     e.preventDefault();
     try {
       // 1. Create the Account
-      await axios.post('http://localhost:8000/api/auth/users/', formData);
+      await axios.post(endpoints.auth.register, formData);
 
       // 2. Auto-Login (Get the Token immediately)
-      const response = await axios.post('http://localhost:8000/api/auth/jwt/create/', {
+      const response = await axios.post(endpoints.auth.login, {
         username: formData.username,
         password: formData.password
       });
@@ -33,7 +34,6 @@ export default function Register() {
     <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
       <form onSubmit={handleRegister} className="w-96 p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
         <h1 className="text-2xl font-bold mb-6 text-emerald-400">Join Roots & Rumors</h1>
-        {/* Simple inputs for speed */}
         <input
           type="text" placeholder="Username"
           className="w-full mb-4 p-3 bg-gray-900 rounded border border-gray-600 focus:border-emerald-500 outline-none"
