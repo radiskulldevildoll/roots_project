@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import re
 from .models import Person, Relationship, ParentChildLink, Story, Media
 
 class PersonSerializer(serializers.ModelSerializer):
@@ -25,11 +26,19 @@ class GraphNodeSerializer(serializers.ModelSerializer):
     def get_birth_year(self, obj):
         if obj.birth_date:
             return obj.birth_date.year
+        if obj.birth_date_fuzzy:
+            match = re.search(r'\d{4}', obj.birth_date_fuzzy)
+            if match:
+                return int(match.group())
         return None
     
     def get_death_year(self, obj):
         if obj.death_date:
             return obj.death_date.year
+        if hasattr(obj, 'death_date_fuzzy') and obj.death_date_fuzzy:
+            match = re.search(r'\d{4}', obj.death_date_fuzzy)
+            if match:
+                return int(match.group())
         return None
 
 class RelationshipSerializer(serializers.ModelSerializer):
