@@ -1,14 +1,14 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.db.models import Q, Prefetch
 from .models import Person, Relationship, ParentChildLink, Story, Media
 from .serializers import (PersonSerializer, GraphNodeSerializer, GraphEdgeSerializer,
                          RelationshipSerializer, ParentChildLinkSerializer,
                          StorySerializer, MediaSerializer)
-from django.db.models import Q
 
 User = get_user_model()
 
@@ -32,6 +32,17 @@ class PersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
 
+    def get_queryset(self):
+        """Optimized queryset with prefetching for related data"""
+        return Person.objects.prefetch_related(
+            'relationships_a',
+            'relationships_b',
+            'parent_links',
+            'single_children',
+            'stories',
+            'media'
+        )
+
     @action(detail=False, methods=['get'])
     def visual_tree(self, request):
         focus_id = request.query_params.get('focus_id')
@@ -41,46 +52,63 @@ class PersonViewSet(viewsets.ModelViewSet):
                 center_person = Person.objects.get(id=focus_id)
                 people_ids = {center_person.id}
 
-                # Get Spouses
-                relationships = Relationship.objects.filter(
+                # Get Spouses - optimized with select_related
+                relationships = Relationship.objects.select_related(
+                    'person_a', 'person_b'
+                ).filter(
                     Q(person_a=center_person) | Q(person_b=center_person)
                 )
                 for rel in relationships:
-                    people_ids.add(rel.person_a.id)
-                    people_ids.add(rel.person_b.id)
+                    people_ids.add(rel.person_a_id)
+                    people_ids.add(rel.person_b_id)
 
-                # Get Children
-                children_links = ParentChildLink.objects.filter(
+                # Get Children - optimized with select_related
+                children_links = ParentChildLink.objects.select_related(
+                    'child', 'single_parent', 'relationship', 
+                    'relationship__person_a', 'relationship__person_b'
+                ).filter(
                     Q(single_parent=center_person) |
                     Q(relationship__person_a=center_person) |
                     Q(relationship__person_b=center_person)
                 )
                 for link in children_links:
-                    people_ids.add(link.child.id)
+                    people_ids.add(link.child_id)
 
-                # Get Parents
-                parent_links = ParentChildLink.objects.filter(child=center_person)
+                # Get Parents - optimized with select_related
+                parent_links = ParentChildLink.objects.select_related(
+                    'child', 'single_parent', 'relationship',
+                    'relationship__person_a', 'relationship__person_b'
+                ).filter(child=center_person)
+                
                 for link in parent_links:
-                    if link.single_parent:
-                        people_ids.add(link.single_parent.id)
+                    if link.single_parent_id:
+                        people_ids.add(link.single_parent_id)
                     if link.relationship:
-                        people_ids.add(link.relationship.person_a.id)
-                        people_ids.add(link.relationship.person_b.id)
+                        people_ids.add(link.relationship.person_a_id)
+                        people_ids.add(link.relationship.person_b_id)
 
                 people = Person.objects.filter(id__in=people_ids)
                 # Fetch ALL relationships between the visible people, so parents appear married
-                spousal_relationships = Relationship.objects.filter(
+                spousal_relationships = Relationship.objects.select_related(
+                    'person_a', 'person_b'
+                ).filter(
                     person_a__in=people,
                     person_b__in=people
                 )
                 parent_child_links = children_links | parent_links
 
             except Person.DoesNotExist:
-                return Response({"error": "Person not found"}, status=404)
+                return Response({"error": "Person not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            people = Person.objects.all()
-            spousal_relationships = Relationship.objects.all()
-            parent_child_links = ParentChildLink.objects.all()
+            # Full tree - limit for performance
+            people = Person.objects.all()[:500]  # Limit to prevent memory issues
+            spousal_relationships = Relationship.objects.select_related(
+                'person_a', 'person_b'
+            ).all()
+            parent_child_links = ParentChildLink.objects.select_related(
+                'child', 'single_parent', 'relationship',
+                'relationship__person_a', 'relationship__person_b'
+            ).all()
 
         nodes_data = GraphNodeSerializer(people, many=True, context={'request': request}).data
         spouse_edges = GraphEdgeSerializer(spousal_relationships, many=True, context={'request': request}).data
@@ -141,25 +169,38 @@ class PersonViewSet(viewsets.ModelViewSet):
 
 class RelationshipViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Relationship.objects.all()
     serializer_class = RelationshipSerializer
+
+    def get_queryset(self):
+        """Optimized queryset with select_related"""
+        return Relationship.objects.select_related('person_a', 'person_b')
+
 
 class ParentChildLinkViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = ParentChildLink.objects.all()
     serializer_class = ParentChildLinkSerializer
 
     def get_queryset(self):
-        queryset = ParentChildLink.objects.all()
+        """Optimized queryset with select_related and filtering"""
+        queryset = ParentChildLink.objects.select_related(
+            'child', 'single_parent', 'relationship',
+            'relationship__person_a', 'relationship__person_b'
+        )
         child_id = self.request.query_params.get('child', None)
         if child_id is not None:
             queryset = queryset.filter(child_id=child_id)
         return queryset
 
+
 class StoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Story.objects.all()
     serializer_class = StorySerializer
+    
+    def get_queryset(self):
+        """Optimized queryset with select_related and prefetch_related"""
+        return Story.objects.select_related('author').prefetch_related(
+            'tagged_people', 'media_items'
+        ).order_by('-created_at')
     
     def perform_create(self, serializer):
         # Automatically set the author to the current user
@@ -170,16 +211,21 @@ class StoryViewSet(viewsets.ModelViewSet):
         """Get all stories tagged with a specific person"""
         person_id = request.query_params.get('person_id')
         if person_id:
-            stories = Story.objects.filter(tagged_people__id=person_id)
+            stories = self.get_queryset().filter(tagged_people__id=person_id)
             serializer = self.get_serializer(stories, many=True)
             return Response(serializer.data)
-        return Response({"error": "person_id required"}, status=400)
+        return Response({"error": "person_id required"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MediaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Media.objects.all()
     serializer_class = MediaSerializer
+    
+    def get_queryset(self):
+        """Optimized queryset with select_related and prefetch_related"""
+        return Media.objects.select_related(
+            'uploaded_by', 'story'
+        ).prefetch_related('tagged_people').order_by('-created_at')
     
     def perform_create(self, serializer):
         # Automatically set the uploader to the current user
@@ -190,20 +236,20 @@ class MediaViewSet(viewsets.ModelViewSet):
         """Get all media tagged with a specific person"""
         person_id = request.query_params.get('person_id')
         if person_id:
-            media = Media.objects.filter(tagged_people__id=person_id)
+            media = self.get_queryset().filter(tagged_people__id=person_id)
             serializer = self.get_serializer(media, many=True)
             return Response(serializer.data)
-        return Response({"error": "person_id required"}, status=400)
+        return Response({"error": "person_id required"}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
     def by_type(self, request):
         """Filter media by type (photos, videos, etc.)"""
         media_type = request.query_params.get('type')
         if media_type:
-            media = Media.objects.filter(media_type=media_type)
+            media = self.get_queryset().filter(media_type=media_type)
             serializer = self.get_serializer(media, many=True)
             return Response(serializer.data)
-        return Response({"error": "type required"}, status=400)
+        return Response({"error": "type required"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Keep GenealogyViewSet as alias for backward compatibility

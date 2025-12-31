@@ -1,37 +1,41 @@
-"use client";
 import './globals.css';
-import { Toaster } from 'react-hot-toast';
-import AxiosInterceptor from '../components/AxiosInterceptor';
+import Providers from '../components/Providers';
+
+export const metadata = {
+  title: 'Roots & Rumors - Family Tree & Genealogy',
+  description: 'Preserve your family history with an interactive family tree, stories, and media gallery. Record memories, trace your ancestry, and share your heritage.',
+  keywords: ['genealogy', 'family tree', 'ancestry', 'family history', 'heritage'],
+  authors: [{ name: 'Roots & Rumors' }],
+  openGraph: {
+    title: 'Roots & Rumors - Family Tree & Genealogy',
+    description: 'Preserve your family history with an interactive family tree, stories, and media gallery.',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Roots & Rumors - Family Tree & Genealogy',
+    description: 'Preserve your family history with an interactive family tree, stories, and media gallery.',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
+  themeColor: '#111827',
+};
 
 export default function RootLayout({ children }) {
- return (
+  return (
     <html lang="en">
-      <body className="bg-gray-900 text-white antialiased" style={{ backgroundColor: '#111827', color: 'white', minHeight: '100vh' }}>
-        <AxiosInterceptor />
-        {children}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1f2937',
-              color: '#fff',
-              border: '1px solid #374151',
-            },
-            success: {
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
-            },
-          }}
-        />
+      <body 
+        className="bg-gray-900 text-white antialiased"
+        style={{ backgroundColor: '#111827', color: 'white', minHeight: '100vh' }}
+      >
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
-  )
+  );
 }
