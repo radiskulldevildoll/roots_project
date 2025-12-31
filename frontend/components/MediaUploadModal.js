@@ -4,6 +4,7 @@ import axios from 'axios';
 import { X, Upload, Check, FileText, Image as ImageIcon, Film, Music } from 'lucide-react';
 import { endpoints } from '../utils/config';
 import toast from 'react-hot-toast';
+import { tokenStorage } from '../utils/storage';
 
 export default function MediaUploadModal({ isOpen, onClose, onSuccess }) {
   const [file, setFile] = useState(null);
@@ -26,7 +27,7 @@ export default function MediaUploadModal({ isOpen, onClose, onSuccess }) {
 
   const fetchPeople = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       const res = await axios.get(endpoints.genealogy.people, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,7 +68,7 @@ export default function MediaUploadModal({ isOpen, onClose, onSuccess }) {
     formData.tagged_people.forEach(id => data.append('tagged_people', id));
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       await axios.post(endpoints.media.list, data, {
         headers: {
           'Authorization': `Bearer ${token}`,

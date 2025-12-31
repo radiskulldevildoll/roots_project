@@ -5,6 +5,7 @@ import { X, UserPlus, Users, Heart, Baby, Search, UserCheck } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { endpoints } from '../utils/config';
+import { tokenStorage } from '../utils/storage';
 
 export default function AddRelativeModal({ isOpen, onClose, sourceNode, existingPeople = [], onSuccess, initialRelationType = 'child', onEditPersonClick }) {
   const [modalMode, setModalMode] = useState('add');
@@ -61,7 +62,7 @@ export default function AddRelativeModal({ isOpen, onClose, sourceNode, existing
   useEffect(() => {
     if (modalMode === 'edit' && sourceNode) {
       const fetchPerson = async () => {
-        const token = localStorage.getItem('access_token');
+        const token = tokenStorage.getAccessToken();
         try {
           const response = await axios.get(`${endpoints.genealogy.people}${sourceNode.id}/`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -106,7 +107,7 @@ export default function AddRelativeModal({ isOpen, onClose, sourceNode, existing
       return await handleEditSubmit();
     }
     setLoading(true);
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     try {
       let newPersonId;
@@ -193,7 +194,7 @@ export default function AddRelativeModal({ isOpen, onClose, sourceNode, existing
 
   const handleEditSubmit = async () => {
     setLoading(true);
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     try {
       await axios.patch(`${endpoints.genealogy.people}${sourceNode.id}/`, {

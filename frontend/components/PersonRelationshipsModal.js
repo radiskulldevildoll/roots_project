@@ -5,6 +5,7 @@ import { X, Heart, Users, Baby, Edit, Trash2, Calendar, Plus } from 'lucide-reac
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { endpoints } from '../utils/config';
+import { tokenStorage } from '../utils/storage';
 import AddRelativeModal from './AddRelativeModal';
 
 const RELATIONSHIP_TYPES = {
@@ -40,7 +41,7 @@ export default function PersonRelationshipsModal({ isOpen, onClose, personId, pe
 
   const fetchRelationships = async () => {
     setLoading(true);
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
         // Fetch all relationships for this person
       const [relationshipRes, parentLinkRes, childLinkRes] = await Promise.all([
@@ -105,7 +106,7 @@ export default function PersonRelationshipsModal({ isOpen, onClose, personId, pe
     if (!window.confirm(confirmationText)) return;
 
     setSaving(true);
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     try {
       let url;

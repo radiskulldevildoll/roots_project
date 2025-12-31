@@ -3,6 +3,7 @@ import axios from 'axios';
 import { X, Save, Trash2, Calendar, Users, FileText } from 'lucide-react';
 import { endpoints } from '../utils/config';
 import toast from 'react-hot-toast';
+import { tokenStorage } from '../utils/storage';
 
 export default function StoryModal({ isOpen, onClose, story = null, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -37,7 +38,7 @@ export default function StoryModal({ isOpen, onClose, story = null, onSuccess })
 
   const fetchPeople = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       const res = await axios.get(endpoints.genealogy.people, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -50,7 +51,7 @@ export default function StoryModal({ isOpen, onClose, story = null, onSuccess })
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     
     try {
       if (story) {
@@ -76,7 +77,7 @@ export default function StoryModal({ isOpen, onClose, story = null, onSuccess })
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this story?")) return;
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
       await axios.delete(endpoints.stories.detail(story.id), {
         headers: { Authorization: `Bearer ${token}` }
@@ -212,5 +213,3 @@ export default function StoryModal({ isOpen, onClose, story = null, onSuccess })
     </div>
   );
 }
-
-

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Network, BookOpen, Image as ImageIcon, LogOut, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { tokenStorage } from '../../utils/storage';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -17,8 +18,7 @@ export default function DashboardLayout({ children }) {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    tokenStorage.clearTokens();
     router.push('/login');
   };
 

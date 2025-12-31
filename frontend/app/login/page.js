@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import { tokenStorage } from '../../utils/storage';
 import { loginSchema } from '../../utils/validations';
 import RegisterUser from '../../components/RegisterUser';
 
@@ -31,10 +32,10 @@ export default function Login() {
     try {
       const response = await api.post('/api/auth/jwt/create/', data);
       
-      // Store tokens
-      localStorage.setItem('access_token', response.data.access);
+      // Store tokens using safe storage wrapper
+      tokenStorage.setAccessToken(response.data.access);
       if (response.data.refresh) {
-        localStorage.setItem('refresh_token', response.data.refresh);
+        tokenStorage.setRefreshToken(response.data.refresh);
       }
       
       toast.success('Welcome back! 🌳');
@@ -194,8 +195,8 @@ export default function Login() {
           </div>
         </form>
 
-        {/* Footer */}
-        <p className="text-center text-gray-500 text-xs mt-6">
+        {/* Footer - use suppressHydrationWarning for dynamic year */}
+        <p className="text-center text-gray-500 text-xs mt-6" suppressHydrationWarning>
           © {new Date().getFullYear()} Roots & Rumors. Preserve your family history.
         </p>
       </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, X, Check } from 'lucide-react';
 import { endpoints } from '../utils/config';
+import { tokenStorage } from '../utils/storage';
 
 export default function UploadMediaModal({ isOpen, onClose, personId, onSuccess }) {
   const [file, setFile] = useState(null);
@@ -28,7 +29,7 @@ export default function UploadMediaModal({ isOpen, onClose, personId, onSuccess 
     formData.append('profile_picture', file);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       await axios.patch(endpoints.genealogy.uploadPhoto(personId), formData, {
         headers: {
           'Authorization': `Bearer ${token}`,

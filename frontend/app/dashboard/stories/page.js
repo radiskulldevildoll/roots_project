@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Search, BookOpen, Calendar, Users, Edit2, ArrowRight } from 'lucide-react';
 import { endpoints } from '../../../utils/config';
+import { tokenStorage } from '../../../utils/storage';
 import StoryModal from '../../../components/StoryModal';
 import { motion } from 'framer-motion';
 
@@ -20,7 +21,7 @@ export default function StoriesPage() {
   const fetchStories = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       const res = await axios.get(endpoints.stories.list, {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useCallback, useState, memo } from 'react';
+import React, { useEffect, useCallback, useState, memo, useMemo } from 'react';
 import ReactFlow, {
   useNodesState,
   useEdgesState,
@@ -12,44 +12,96 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import axios from 'axios';
-import { Search, X, MapPin, Grid3x3, Maximize2, User, UserPlus, Settings, Edit, Trash2, Heart } from 'lucide-react';
+import { Search, X, MapPin, Grid3x3, Maximize2, User, UserPlus, Settings, Edit, Trash2, Heart, Users, Eye, EyeOff, ChevronDown, ChevronUp, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { endpoints } from '../../../utils/config';
+import { tokenStorage } from '../../../utils/storage';
 import AddRelativeModal from '../../../components/AddRelativeModal';
 import PersonEditModal from '../../../components/PersonEditModal';
 import PersonRelationshipsModal from '../../../components/PersonRelationshipsModal';
 import UserEditModal from '../../../components/UserEditModal';
+import { calculateBloodRelations, getRelationColor, getRelationLegend, RELATION_TYPES } from '../../../utils/bloodRelations';
 
-// Enhanced Portrait Node with animations
+// Enhanced Portrait Node with animations and blood relations highlighting
 const PortraitNode = memo(({ data }) => {
   const confidenceLevel = data.confidence_level || 100;
-  const color = confidenceLevel >= 80 ? '#22c55e' : 
-                confidenceLevel >= 50 ? '#eab308' : '#f97316';
+  
+  // Check if blood relations highlighting is active
+  const highlightInfo = data.highlightInfo;
+  const isHighlightMode = data.isHighlightMode;
+  
+  // Determine colors based on highlight state
+  let borderColor, backgroundColor, glowEffect, opacity;
+  
+  if (isHighlightMode && highlightInfo) {
+    const colors = getRelationColor(highlightInfo.type, highlightInfo.isBloodRelation);
+    borderColor = colors.border;
+    backgroundColor = colors.background;
+    glowEffect = `0 0 20px ${colors.glow}, 0 0 40px ${colors.glow}`;
+    opacity = 1;
+  } else if (isHighlightMode && !highlightInfo) {
+    // Not related - dim the node
+    borderColor = '#4b5563';
+    backgroundColor = 'rgba(31, 41, 55, 0.5)';
+    glowEffect = 'none';
+    opacity = 0.4;
+  } else {
+    // Normal mode - use confidence level colors
+    borderColor = confidenceLevel >= 80 ? '#22c55e' : 
+                  confidenceLevel >= 50 ? '#eab308' : '#f97316';
+    backgroundColor = 'linear-gradient(to bottom right, #1f2937, #111827)';
+    glowEffect = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+    opacity = 1;
+  }
   
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
+      animate={{ scale: 1, opacity: opacity }}
       transition={{ duration: 0.3 }}
       whileHover={{ scale: 1.05 }}
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        background: 'linear-gradient(to bottom right, #1f2937, #111827)',
+        background: isHighlightMode && highlightInfo ? backgroundColor : 'linear-gradient(to bottom right, #1f2937, #111827)',
         padding: '12px',
         borderRadius: '12px',
-        border: `2px solid ${color}`,
+        border: `3px solid ${borderColor}`,
         width: '128px',
-        minHeight: '120px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        minHeight: highlightInfo ? '140px' : '120px',
+        boxShadow: glowEffect,
         cursor: 'pointer',
-        position: 'relative'
+        position: 'relative',
+        opacity: opacity
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: color, width: '10px', height: '10px' }} id="top" />
-      <Handle type="target" position={Position.Left} style={{ background: color, width: '10px', height: '10px' }} id="left" />
+      {/* Relationship Label Badge */}
+      {isHighlightMode && highlightInfo && (
+        <div style={{
+          position: 'absolute',
+          top: '-12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: borderColor,
+          color: '#000',
+          fontSize: '9px',
+          fontWeight: 'bold',
+          padding: '2px 8px',
+          borderRadius: '10px',
+          whiteSpace: 'nowrap',
+          zIndex: 10,
+          maxWidth: '140px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {highlightInfo.label}
+        </div>
+      )}
+      
+      <Handle type="target" position={Position.Top} style={{ background: borderColor, width: '10px', height: '10px' }} id="top" />
+      <Handle type="target" position={Position.Left} style={{ background: borderColor, width: '10px', height: '10px' }} id="left" />
       {data.profile_picture ? (
         <div style={{
           width: '56px',
@@ -57,7 +109,7 @@ const PortraitNode = memo(({ data }) => {
           borderRadius: '50%',
           overflow: 'hidden',
           marginBottom: '8px',
-          border: '2px solid #374151'
+          border: `2px solid ${isHighlightMode && highlightInfo ? borderColor : '#374151'}`
         }}>
           <img 
             src={data.profile_picture} 
@@ -75,9 +127,9 @@ const PortraitNode = memo(({ data }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          border: '2px solid #374151'
+          border: `2px solid ${isHighlightMode && highlightInfo ? borderColor : '#374151'}`
         }}>
-          <User size={24} color="#9ca3af" />
+          <User size={24} color={isHighlightMode && highlightInfo ? borderColor : "#9ca3af"} />
         </div>
       )}
       <div style={{ color: 'white', fontSize: '12px', fontWeight: 'bold', textAlign: 'center', marginBottom: '4px', lineHeight: '1.2' }}>
@@ -93,8 +145,8 @@ const PortraitNode = memo(({ data }) => {
           d. {data.death_year}
         </div>
       )}
-      <Handle type="source" position={Position.Bottom} style={{ background: color, width: '10px', height: '10px' }} id="bottom" />
-      <Handle type="source" position={Position.Right} style={{ background: color, width: '10px', height: '10px' }} id="right" />
+      <Handle type="source" position={Position.Bottom} style={{ background: borderColor, width: '10px', height: '10px' }} id="bottom" />
+      <Handle type="source" position={Position.Right} style={{ background: borderColor, width: '10px', height: '10px' }} id="right" />
     </motion.div>
   );
 });
@@ -232,6 +284,19 @@ export default function FamilyTreeCanvas() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, node: null });
 
+  // Blood Relations Highlighting State
+  const [bloodRelationsMode, setBloodRelationsMode] = useState(false);
+  const [bloodRelationsFocusPerson, setBloodRelationsFocusPerson] = useState(null);
+  const [bloodRelationsMap, setBloodRelationsMap] = useState(new Map());
+  const [showBloodRelationsSettings, setShowBloodRelationsSettings] = useState(false);
+  const [showLegend, setShowLegend] = useState(true);
+  const [bloodRelationsOptions, setBloodRelationsOptions] = useState({
+    maxDepth: 5,
+    includeAdopted: false,
+    includeFoster: false,
+    includeSpouses: true
+  });
+
   const onNodeClick = useCallback((event, node) => {
     setSelectedNode(node);
     setAddModalOpen(true);
@@ -279,7 +344,7 @@ export default function FamilyTreeCanvas() {
       return;
     }
 
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
       await axios.delete(`${endpoints.genealogy.people}${contextMenu.node.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -308,7 +373,7 @@ export default function FamilyTreeCanvas() {
   };
 
   const fetchData = async (focusId = null) => {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     let url = endpoints.genealogy.visualTree;
     if (focusId) {
@@ -419,7 +484,7 @@ export default function FamilyTreeCanvas() {
 
   const onConnect = useCallback(async (connection) => {
     const { source, target, sourceHandle, targetHandle } = connection;
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     if (source === target) {
       toast.error('Cannot connect a person to themselves');
@@ -467,6 +532,109 @@ export default function FamilyTreeCanvas() {
     setLayoutDirection(prev => prev === 'TB' ? 'LR' : 'TB');
     toast.success(`Layout changed to ${layoutDirection === 'TB' ? 'Horizontal' : 'Vertical'}`);
   };
+
+  // Blood Relations Mode Handlers
+  const toggleBloodRelationsMode = useCallback(() => {
+    if (bloodRelationsMode) {
+      // Exiting blood relations mode
+      setBloodRelationsMode(false);
+      setBloodRelationsFocusPerson(null);
+      setBloodRelationsMap(new Map());
+      toast.success('Exited blood relations mode');
+    } else {
+      // Entering blood relations mode
+      setBloodRelationsMode(true);
+      toast('👆 Click on a person to see their blood relations', { icon: '🩸' });
+    }
+  }, [bloodRelationsMode]);
+
+  const handleBloodRelationsPersonSelect = useCallback((node) => {
+    if (!bloodRelationsMode) return;
+    
+    setBloodRelationsFocusPerson(node.id);
+    
+    // Calculate blood relations
+    const relations = calculateBloodRelations(
+      node.id,
+      allData.nodes,
+      allData.edges,
+      bloodRelationsOptions
+    );
+    
+    setBloodRelationsMap(relations);
+    toast.success(`Showing blood relations for ${node.data.label}`);
+  }, [bloodRelationsMode, allData.nodes, allData.edges, bloodRelationsOptions]);
+
+  // Effect to update nodes with highlight information
+  useEffect(() => {
+    if (!bloodRelationsMode) {
+      // Reset nodes to remove highlight info
+      setNodes(currentNodes => 
+        currentNodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            isHighlightMode: false,
+            highlightInfo: null
+          }
+        }))
+      );
+      return;
+    }
+
+    if (bloodRelationsFocusPerson && bloodRelationsMap.size > 0) {
+      setNodes(currentNodes =>
+        currentNodes.map(node => {
+          const relationInfo = bloodRelationsMap.get(node.id);
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isHighlightMode: true,
+              highlightInfo: relationInfo || null
+            }
+          };
+        })
+      );
+    } else {
+      // Blood relations mode is on but no person selected yet
+      setNodes(currentNodes =>
+        currentNodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            isHighlightMode: true,
+            highlightInfo: null
+          }
+        }))
+      );
+    }
+  }, [bloodRelationsMode, bloodRelationsFocusPerson, bloodRelationsMap, setNodes]);
+
+  // Effect to recalculate when options change
+  useEffect(() => {
+    if (bloodRelationsMode && bloodRelationsFocusPerson) {
+      const relations = calculateBloodRelations(
+        bloodRelationsFocusPerson,
+        allData.nodes,
+        allData.edges,
+        bloodRelationsOptions
+      );
+      setBloodRelationsMap(relations);
+    }
+  }, [bloodRelationsOptions, bloodRelationsMode, bloodRelationsFocusPerson, allData.nodes, allData.edges]);
+
+  // Modified node click handler for blood relations mode
+  const handleNodeClickWithBloodRelations = useCallback((event, node) => {
+    if (bloodRelationsMode) {
+      handleBloodRelationsPersonSelect(node);
+    } else {
+      onNodeClick(event, node);
+    }
+  }, [bloodRelationsMode, handleBloodRelationsPersonSelect, onNodeClick]);
+
+  // Legend data
+  const legendItems = useMemo(() => getRelationLegend(), []);
 
   return nodes.length === 0 ? (
     // First Person Welcome Screen with animation
@@ -563,6 +731,42 @@ export default function FamilyTreeCanvas() {
           >
             <UserPlus size={20} className="text-white" />
           </motion.button>
+          
+          {/* Blood Relations Mode Button */}
+          <div className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleBloodRelationsMode}
+              className={`p-2 sm:p-3 rounded-xl shadow-lg transition-all flex items-center gap-2 ${
+                bloodRelationsMode 
+                  ? 'bg-red-600 hover:bg-red-500 border border-red-500' 
+                  : 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
+              }`}
+              title={bloodRelationsMode ? "Exit Blood Relations Mode" : "Show Blood Relations"}
+            >
+              <Users size={20} className={bloodRelationsMode ? 'text-white' : 'text-red-400'} />
+              <span className="hidden sm:inline text-white text-sm">
+                {bloodRelationsMode ? 'Exit' : 'Blood'}
+              </span>
+            </motion.button>
+            
+            {/* Settings Button (only visible in blood relations mode) */}
+            {bloodRelationsMode && (
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowBloodRelationsSettings(!showBloodRelationsSettings)}
+                className="absolute -bottom-2 -right-2 bg-gray-700 hover:bg-gray-600 p-1.5 rounded-full shadow-lg border border-gray-600 transition-all"
+                title="Blood Relations Settings"
+              >
+                <Sliders size={12} className="text-white" />
+              </motion.button>
+            )}
+          </div>
+          
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -619,7 +823,7 @@ export default function FamilyTreeCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={onNodeClick}
+        onNodeClick={handleNodeClickWithBloodRelations}
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeContextMenu={onNodeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
@@ -728,6 +932,198 @@ export default function FamilyTreeCanvas() {
         onClose={() => setUserModalOpen(false)}
         onSuccess={() => toast.success('User profile updated')}
       />
+
+      {/* Blood Relations Settings Panel */}
+      <AnimatePresence>
+        {showBloodRelationsSettings && bloodRelationsMode && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute top-20 right-2 sm:right-4 z-20 w-72 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden"
+          >
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <Sliders size={18} className="text-red-400" />
+                Blood Relations Settings
+              </h3>
+              <button
+                onClick={() => setShowBloodRelationsSettings(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {/* Max Depth Setting */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">
+                  Maximum Generations: {bloodRelationsOptions.maxDepth}
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  value={bloodRelationsOptions.maxDepth}
+                  onChange={(e) => setBloodRelationsOptions(prev => ({
+                    ...prev,
+                    maxDepth: parseInt(e.target.value)
+                  }))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>8</span>
+                  <span>15</span>
+                </div>
+              </div>
+
+              {/* Toggle Options */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={bloodRelationsOptions.includeAdopted}
+                    onChange={(e) => setBloodRelationsOptions(prev => ({
+                      ...prev,
+                      includeAdopted: e.target.checked
+                    }))}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-red-500 focus:ring-red-500 focus:ring-offset-gray-800"
+                  />
+                  <span className="text-gray-300 text-sm group-hover:text-white transition-colors">
+                    Include Adopted as Blood
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={bloodRelationsOptions.includeFoster}
+                    onChange={(e) => setBloodRelationsOptions(prev => ({
+                      ...prev,
+                      includeFoster: e.target.checked
+                    }))}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-red-500 focus:ring-red-500 focus:ring-offset-gray-800"
+                  />
+                  <span className="text-gray-300 text-sm group-hover:text-white transition-colors">
+                    Include Foster as Blood
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={bloodRelationsOptions.includeSpouses}
+                    onChange={(e) => setBloodRelationsOptions(prev => ({
+                      ...prev,
+                      includeSpouses: e.target.checked
+                    }))}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-red-500 focus:ring-red-500 focus:ring-offset-gray-800"
+                  />
+                  <span className="text-gray-300 text-sm group-hover:text-white transition-colors">
+                    Show Spouses/In-Laws
+                  </span>
+                </label>
+              </div>
+
+              {/* Toggle Legend Button */}
+              <button
+                onClick={() => setShowLegend(!showLegend)}
+                className="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg transition-colors text-sm"
+              >
+                {showLegend ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showLegend ? 'Hide Legend' : 'Show Legend'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Blood Relations Legend */}
+      <AnimatePresence>
+        {bloodRelationsMode && showLegend && bloodRelationsFocusPerson && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 z-20 bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700 p-3"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-white text-xs font-semibold">Relation Legend</h4>
+              <button
+                onClick={() => setShowLegend(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {legendItems.map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-gray-300 text-xs">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Blood Relations Mode Indicator Banner */}
+      <AnimatePresence>
+        {bloodRelationsMode && !bloodRelationsFocusPerson && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-20"
+          >
+            <div className="bg-red-600 bg-opacity-90 backdrop-blur-sm px-6 py-3 rounded-xl shadow-lg border border-red-500">
+              <p className="text-white text-sm font-medium text-center">
+                🩸 Blood Relations Mode Active
+              </p>
+              <p className="text-red-100 text-xs text-center mt-1">
+                Click on any person to see their blood relations
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Focus Person Indicator */}
+      <AnimatePresence>
+        {bloodRelationsMode && bloodRelationsFocusPerson && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-20"
+          >
+            <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg border border-yellow-500">
+              <p className="text-yellow-400 text-xs font-medium text-center flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                Showing relations for: {nodes.find(n => n.id === bloodRelationsFocusPerson)?.data?.label || 'Unknown'}
+                <button
+                  onClick={() => {
+                    setBloodRelationsFocusPerson(null);
+                    setBloodRelationsMap(new Map());
+                  }}
+                  className="ml-2 text-gray-400 hover:text-white transition-colors"
+                  title="Clear selection"
+                >
+                  <X size={14} />
+                </button>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

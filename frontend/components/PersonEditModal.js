@@ -5,6 +5,7 @@ import { X, Upload, Save, Camera, Calendar, Heart, Award, Trash, BookOpen, Image
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { endpoints } from '../utils/config';
+import { tokenStorage } from '../utils/storage';
 import StoryModal from './StoryModal';
 import MediaViewerModal from './MediaViewerModal';
 
@@ -45,7 +46,7 @@ export default function PersonEditModal({ isOpen, onClose, personId, onSuccess }
   }, [personId, isOpen]);
 
   const fetchPerson = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
       const response = await axios.get(`${endpoints.genealogy.people}${personId}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -74,7 +75,7 @@ export default function PersonEditModal({ isOpen, onClose, personId, onSuccess }
   };
 
   const fetchLinkedData = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
         const [storiesRes, mediaRes] = await Promise.all([
             axios.get(endpoints.stories.byPerson(personId), { headers: { Authorization: `Bearer ${token}` } }),
@@ -89,7 +90,7 @@ export default function PersonEditModal({ isOpen, onClose, personId, onSuccess }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     try {
       const updateData = {
@@ -119,7 +120,7 @@ export default function PersonEditModal({ isOpen, onClose, personId, onSuccess }
   };
 
   const handleDelete = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     try {
       await axios.delete(`${endpoints.genealogy.people}${personId}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -137,7 +138,7 @@ export default function PersonEditModal({ isOpen, onClose, personId, onSuccess }
     const file = e.target.files[0];
     if (!file) return;
 
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
     const formDataUpload = new FormData();
     formDataUpload.append('profile_picture', file);
 

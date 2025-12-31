@@ -6,6 +6,7 @@ import { X, User, Save, Mail, Tag, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { endpoints } from '../utils/config';
+import { tokenStorage } from '../utils/storage';
 
 export default function UserEditModal({ isOpen, onClose, onSuccess }) {
   const router = useRouter();
@@ -18,14 +19,14 @@ export default function UserEditModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(true);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
+    tokenStorage.clearTokens();
     toast.success('👋 Logged out successfully');
     router.push('/login');
   };
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('access_token');
+      const token = tokenStorage.getAccessToken();
       try {
         const response = await axios.get(endpoints.auth.user, {
           headers: { Authorization: `Bearer ${token}` }
@@ -54,7 +55,7 @@ export default function UserEditModal({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     try {
       await axios.patch(endpoints.auth.user, formData, {

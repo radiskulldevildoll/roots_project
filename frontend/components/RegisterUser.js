@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { registerSchema } from '../utils/validations';
+import { tokenStorage } from '../utils/storage';
 
 export default function RegisterUser({ isOpen, onClose }) {
   const router = useRouter();
@@ -67,9 +68,9 @@ export default function RegisterUser({ isOpen, onClose }) {
         password: data.password,
       });
 
-      localStorage.setItem('access_token', loginResponse.data.access);
+      tokenStorage.setAccessToken(loginResponse.data.access);
       if (loginResponse.data.refresh) {
-        localStorage.setItem('refresh_token', loginResponse.data.refresh);
+        tokenStorage.setRefreshToken(loginResponse.data.refresh);
       }
 
       toast.success('Welcome to Roots & Rumors! 🌳');

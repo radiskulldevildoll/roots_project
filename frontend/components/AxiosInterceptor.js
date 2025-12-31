@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { tokenStorage } from '../utils/storage';
 
 let isRedirecting = false; // Prevent multiple simultaneous redirects
 
@@ -23,8 +24,8 @@ export default function AxiosInterceptor() {
         if (error.response?.status === 401 && !isRedirecting) {
           isRedirecting = true;
 
-          // Clear the token
-          localStorage.removeItem('access_token');
+          // Clear the tokens using safe storage wrapper
+          tokenStorage.clearTokens();
 
           // Show user-friendly message
           toast.error('🔐 Session expired. Please login again.', {

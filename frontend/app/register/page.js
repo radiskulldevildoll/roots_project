@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { endpoints } from '../../utils/config';
+import { tokenStorage } from '../../utils/storage';
 
 export default function Register() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function Register() {
       });
 
       // 3. Stash the token and redirect to the Canvas
-      localStorage.setItem('access_token', response.data.access);
+      tokenStorage.setAccessToken(response.data.access);
       router.push('/dashboard/tree');
 
     } catch (err) {

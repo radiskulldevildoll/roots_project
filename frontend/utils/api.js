@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, endpoints } from './config';
+import { tokenStorage } from './storage';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -28,7 +29,8 @@ const processQueue = (error, token = null) => {
 // Request interceptor - Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    // Use safe storage wrapper that handles SSR and blocked localStorage
+    const token = tokenStorage.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -67,12 +69,11 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = tokenStorage.getRefreshToken();
       
       if (!refreshToken) {
         // No refresh token, redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        tokenStorage.clearTokens();
         
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
           window.location.href = '/login';
@@ -88,9 +89,9 @@ api.interceptors.response.use(
 
         const { access, refresh } = response.data;
         
-        localStorage.setItem('access_token', access);
+        tokenStorage.setAccessToken(access);
         if (refresh) {
-          localStorage.setItem('refresh_token', refresh);
+          tokenStorage.setRefreshToken(refresh);
         }
 
         api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
@@ -103,8 +104,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         
         // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        tokenStorage.clearTokens();
         
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
           window.location.href = '/login';
