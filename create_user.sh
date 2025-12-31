@@ -11,6 +11,11 @@ echo "Creating admin user..."
 echo "Username will be: admin"
 echo "Email will be: admin@example.com"
 echo ""
+echo "Password requirements:"
+echo "  - At least 8 characters"
+echo "  - Include uppercase and lowercase letters"
+echo "  - Include at least one number"
+echo ""
 echo "Please enter a password when prompted:"
 
 python manage.py createsuperuser --username admin --email admin@example.com
