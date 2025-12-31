@@ -1,106 +1,242 @@
-# 🚀 Quick Start Guide
+# 🌳 Roots & Rumors - Quick Start Guide
 
-## Current Status
-✅ Backend running on: http://localhost:8000
-✅ Frontend running on: http://localhost:3001
+A beautiful family tree and genealogy application to preserve your family history.
 
-## Important: Where to Go
+---
 
-### ❌ WRONG - Don't go to:
-- http://localhost:8000 (This is the API backend only - no UI here!)
+## 📋 Prerequisites
 
-### ✅ CORRECT - Go to:
-- **http://localhost:3001** (This is your app with the beautiful UI)
+- **Python 3.10+** with pip
+- **Node.js 18+** with npm
+- **Git** (for cloning)
 
-## Login Information
-- **Username**: `admin`
-- **Password**: `admin` (or the password you created)
+---
 
-## Steps to Access Your App
+## 🚀 Quick Setup
 
-1. **Open your browser**
-2. **Go to**: http://localhost:3001
-3. **You should see**: A dark-themed login page
-4. **Enter credentials**: admin / admin
-5. **Click**: "Enter Archive"
-
-## If You See a White Page
-
-This means the browser cached the old version. Fix it:
-
-### Option 1: Hard Refresh
-- **Windows/Linux**: Press `Ctrl + Shift + R`
-- **Mac**: Press `Cmd + Shift + R`
-
-### Option 2: Clear Browser Cache
-1. Open DevTools (F12)
-2. Right-click the refresh button
-3. Click "Empty Cache and Hard Reload"
-
-### Option 3: Try Incognito/Private Mode
-Open the URL in a private/incognito window
-
-## What You Should See
-
-### Login Page
-- Dark gray background (#1f2937)
-- Emerald green accent color
-- "Login" header in emerald
-- Username and password fields
-- "Enter Archive" button
-
-### After Login - Tree Dashboard
-If you have NO people yet:
-- Dark gradient background
-- Welcome message
-- "Add First Person" button
-
-If you have people:
-- Family tree with nodes
-- Search bar at top
-- Minimap in corner
-- Stats showing member count
-
-## Troubleshooting
-
-### "Login failed" Error
-Make sure both servers are running:
+### 1. Clone & Enter Project
 ```bash
-# Check backend
-curl http://localhost:8000/api/auth/jwt/create/
-
-# Should respond (not "connection refused")
+git clone https://github.com/radiskulldevildoll/roots_project.git
+cd roots_project
 ```
 
-### White/Blank Screen
-1. Clear Next.js cache: `rm -rf frontend/.next`
-2. Restart frontend server
-3. Hard refresh browser (Ctrl+Shift+R)
-
-### Tree Not Loading
-Check browser console (F12) for errors. The frontend needs to talk to backend at port 8000.
-
-## Running Both Servers
-
-### Quick Way (Recommended)
-```bash
-cd /home/rodney/roots_project
-./dev_start.sh
-```
-
-### Manual Way
-Terminal 1 - Backend:
+### 2. Backend Setup
 ```bash
 cd backend
-source venv/bin/activate
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy environment file (IMPORTANT!)
+cp .env.example .env  # Edit .env with your settings for production
+
+# Run migrations
+python manage.py migrate
+
+# Create admin user
+python manage.py createsuperuser
+
+# Start server
 python manage.py runserver 0.0.0.0:8000
 ```
 
-Terminal 2 - Frontend:
+### 3. Frontend Setup (New Terminal)
 ```bash
 cd frontend
+
+# Install dependencies
+npm install
+
+# Copy environment file (optional for dev)
+cp .env.example .env.local
+
+# Start development server
 npm run dev
 ```
 
-## Remember!
-Always use port **3001** for the app UI, not 8000!
+---
+
+## 🌐 Access Your App
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Frontend App** | http://localhost:3000 | Main application UI |
+| **Backend API** | http://localhost:8000/api/ | REST API (no UI) |
+| **Django Admin** | http://localhost:8000/admin/ | Database admin |
+
+**⚠️ Always use port 3000 for the app** - Port 8000 is API only!
+
+---
+
+## 🔐 Login
+
+### First Time
+1. Go to http://localhost:3000
+2. You'll see a beautiful dark-themed login page
+3. Use the credentials you created with `createsuperuser`
+
+### Registration Requirements
+When creating new accounts, passwords must have:
+- ✅ At least 8 characters
+- ✅ One uppercase letter (A-Z)
+- ✅ One lowercase letter (a-z)  
+- ✅ One number (0-9)
+
+---
+
+## 📱 Features
+
+### Family Tree (`/dashboard/tree`)
+- Interactive tree visualization with drag-and-drop
+- Add family members (spouses, children, parents, siblings)
+- Upload profile photos
+- Confidence levels for uncertain genealogy data
+- Search and filter family members
+- Vertical/horizontal layout toggle
+
+### Stories (`/dashboard/stories`)
+- Write family stories and memories
+- Tag people mentioned in stories
+- Markdown-supported content
+- Date tracking for events
+
+### Media Gallery (`/dashboard/media`)
+- Upload photos, videos, documents
+- Tag family members in media
+- Filter by media type
+- Beautiful grid gallery view
+
+---
+
+## ⚙️ Environment Configuration
+
+### Backend (`.env`)
+```bash
+# Required for production
+DJANGO_SECRET_KEY=your-super-secret-key-here
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+DATABASE_URL=postgres://user:pass@host:5432/dbname
+
+# Optional
+DJANGO_LOG_LEVEL=INFO
+SECURE_SSL_REDIRECT=True
+```
+
+### Frontend (`.env.local`)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+---
+
+## 🛠️ Development
+
+### One-Command Start (After Setup)
+```bash
+./dev_start.sh  # Starts both backend and frontend
+```
+
+### Manual Start
+```bash
+# Terminal 1 - Backend
+cd backend && source venv/bin/activate
+python manage.py runserver 0.0.0.0:8000
+
+# Terminal 2 - Frontend  
+cd frontend && npm run dev
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### White/Blank Screen
+```bash
+# Clear Next.js cache
+rm -rf frontend/.next
+npm run dev
+
+# Hard refresh browser
+# Windows/Linux: Ctrl + Shift + R
+# Mac: Cmd + Shift + R
+```
+
+### Login Failed
+```bash
+# Check backend is running
+curl http://localhost:8000/api/auth/jwt/create/
+
+# If "connection refused", start backend first
+```
+
+### Database Issues
+```bash
+cd backend
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+### Port Already in Use
+```bash
+# Kill process on port 8000
+lsof -ti:8000 | xargs kill -9
+
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+```
+
+---
+
+## 🚀 Production Deployment
+
+### Backend
+```bash
+# Set environment variables
+export DJANGO_SECRET_KEY="generate-a-secure-key"
+export DJANGO_DEBUG=False
+export DJANGO_ALLOWED_HOSTS="yourdomain.com"
+export CORS_ALLOWED_ORIGINS="https://yourdomain.com"
+export DATABASE_URL="postgres://..."
+
+# Collect static files
+python manage.py collectstatic
+
+# Use gunicorn
+pip install gunicorn
+gunicorn roots_project.wsgi:application
+```
+
+### Frontend
+```bash
+export NEXT_PUBLIC_API_URL="https://api.yourdomain.com"
+npm run build
+npm start
+```
+
+---
+
+## 📚 More Information
+
+See `ENHANCEMENTS_SUMMARY.md` for:
+- Full feature documentation
+- Technical architecture
+- API endpoints
+- Future roadmap
+
+---
+
+## 🆘 Need Help?
+
+1. Check the troubleshooting section above
+2. Review `ENHANCEMENTS_SUMMARY.md`
+3. Open an issue on GitHub
+
+---
+
+**Happy Family Tree Building! 🌳**
