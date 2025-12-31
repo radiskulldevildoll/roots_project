@@ -20,6 +20,7 @@ class Person(models.Model):
     birth_date_fuzzy = models.CharField(max_length=50, blank=True, help_text="e.g. 'About 1900' or 'Winter 1890'")
 
     death_date = models.DateField(null=True, blank=True)
+    death_date_fuzzy = models.CharField(max_length=50, blank=True, help_text="e.g. 'About 1950'")
     is_living = models.BooleanField(default=True)
 
     # The "Rumor Mode" Flag
@@ -32,7 +33,8 @@ class Person(models.Model):
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
 
     def full_name(self):
-        return f"{self.first_name} {self.middle_name} {self.last_name}".replace("  ", " ")
+        parts = [self.first_name, self.middle_name, self.last_name]
+        return " ".join(filter(None, parts))
 
 class Relationship(models.Model):
     """
