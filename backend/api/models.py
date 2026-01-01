@@ -162,3 +162,33 @@ class Media(models.Model):
     
     def __str__(self):
         return self.title
+
+
+class Feedback(models.Model):
+    """
+    User feedback, bug reports, and feature requests.
+    """
+    class FeedbackType(models.TextChoices):
+        BUG = 'BUG', _('Bug Report')
+        FEATURE = 'FEAT', _('Feature Request')
+        OTHER = 'OTHER', _('Other')
+
+    class Status(models.TextChoices):
+        NEW = 'NEW', _('New')
+        IN_PROGRESS = 'WIP', _('In Progress')
+        CLOSED = 'CLOSED', _('Closed')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='feedback')
+    feedback_type = models.CharField(max_length=5, choices=FeedbackType.choices, default=FeedbackType.BUG)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "Feedback"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.feedback_type}: {self.title}"

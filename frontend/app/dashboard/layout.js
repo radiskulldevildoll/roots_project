@@ -2,14 +2,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Network, BookOpen, Image as ImageIcon, LogOut, Menu, X } from 'lucide-react';
+import { Network, BookOpen, Image as ImageIcon, LogOut, Menu, X, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { tokenStorage } from '../../utils/storage';
+import FeedbackModal from '../../components/FeedbackModal';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const navItems = [
     { href: '/dashboard/tree', label: 'Family Tree', icon: Network },
@@ -53,7 +55,15 @@ export default function DashboardLayout({ children }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-700">
+        <div className="p-4 border-t border-gray-700 space-y-2">
+          <button 
+            onClick={() => setShowFeedback(true)}
+            className="flex items-center gap-3 px-4 py-3 w-full text-blue-400 hover:bg-blue-900/20 rounded-xl transition-colors"
+          >
+            <MessageSquare size={20} />
+            <span className="font-medium">Feedback</span>
+          </button>
+
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-900/20 rounded-xl transition-colors"
@@ -98,8 +108,19 @@ export default function DashboardLayout({ children }) {
               );
             })}
              <button 
+               onClick={() => {
+                 setIsMobileMenuOpen(false);
+                 setShowFeedback(true);
+               }}
+               className="flex items-center gap-3 px-4 py-4 w-full text-blue-400 hover:bg-blue-900/20 rounded-xl transition-colors mt-8"
+             >
+               <MessageSquare size={24} />
+               <span className="font-medium text-lg">Feedback</span>
+             </button>
+
+             <button 
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-4 w-full text-red-400 hover:bg-red-900/20 rounded-xl transition-colors mt-8"
+              className="flex items-center gap-3 px-4 py-4 w-full text-red-400 hover:bg-red-900/20 rounded-xl transition-colors mt-2"
             >
               <LogOut size={24} />
               <span className="font-medium text-lg">Logout</span>
@@ -112,6 +133,8 @@ export default function DashboardLayout({ children }) {
       <main className="flex-1 relative w-full h-full overflow-hidden md:static pt-14 md:pt-0">
         {children}
       </main>
+
+      <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
     </div>
   );
 }

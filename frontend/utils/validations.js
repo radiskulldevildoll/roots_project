@@ -12,7 +12,7 @@ export const loginSchema = z.object({
   password: z
     .string()
     .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters'),
+    .min(7, 'Password must be at least 7 characters'),
 });
 
 export const registerSchema = z.object({

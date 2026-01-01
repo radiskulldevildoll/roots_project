@@ -5,10 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Prefetch
-from .models import Person, Relationship, ParentChildLink, Story, Media
+from .models import Person, Relationship, ParentChildLink, Story, Media, Feedback
 from .serializers import (PersonSerializer, GraphNodeSerializer, GraphEdgeSerializer,
                          RelationshipSerializer, ParentChildLinkSerializer,
-                         StorySerializer, MediaSerializer)
+                         StorySerializer, MediaSerializer, FeedbackSerializer)
 
 User = get_user_model()
 
@@ -250,6 +250,16 @@ class MediaViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(media, many=True)
             return Response(serializer.data)
         return Response({"error": "type required"}, status=status.HTTP_400_BAD_REQUEST)
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FeedbackSerializer
+    
+    def get_queryset(self):
+        return Feedback.objects.select_related('user').order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 # Keep GenealogyViewSet as alias for backward compatibility

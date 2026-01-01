@@ -1,6 +1,6 @@
 from rest_framework import serializers
 import re
-from .models import Person, Relationship, ParentChildLink, Story, Media
+from .models import Person, Relationship, ParentChildLink, Story, Media, Feedback
 
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,3 +148,14 @@ class StorySerializer(serializers.ModelSerializer):
     
     def get_tagged_people_details(self, obj):
         return [{'id': str(p.id), 'name': p.full_name()} for p in obj.tagged_people.all()]
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Feedback
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at', 'status']
+    
+    def get_user_name(self, obj):
+        return obj.user.username if obj.user else 'Anonymous'

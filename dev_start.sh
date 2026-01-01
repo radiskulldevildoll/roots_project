@@ -99,8 +99,8 @@ python manage.py migrate 2>&1 | tee -a "$BACKEND_LOG" "$COMBINED_LOG"
 echo "Starting Django..."
 {
     echo -e "\n=== Django Backend Started at $(date) ==="
-    CORS_ALLOWED_ORIGINS="http://localhost:$FRONTEND_PORT,http://127.0.0.1:$FRONTEND_PORT,http://0.0.0.0:$FRONTEND_PORT,http://$LOCAL_IP:$FRONTEND_PORT" \
-    DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,0.0.0.0,$LOCAL_IP" \
+    CORS_ALLOWED_ORIGINS="http://localhost:$FRONTEND_PORT,http://127.0.0.1:$FRONTEND_PORT,http://0.0.0.0:$FRONTEND_PORT,http://$LOCAL_IP:$FRONTEND_PORT,https://roots.pimpnation.org" \
+    DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,0.0.0.0,$LOCAL_IP,roots.pimpnation.org" \
     python manage.py runserver 0.0.0.0:$BACKEND_PORT
 } 2>&1 | tee -a "$BACKEND_LOG" "$COMBINED_LOG" &
 BACKEND_PID=$!
@@ -134,7 +134,7 @@ fi
 echo "Starting Next.js..."
 {
     echo -e "\n=== Next.js Frontend Started at $(date) ==="
-    NEXT_PUBLIC_API_URL=http://$LOCAL_IP:$BACKEND_PORT PORT=$FRONTEND_PORT npm run dev -- -H 0.0.0.0
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://$LOCAL_IP:$BACKEND_PORT} PORT=$FRONTEND_PORT npm run dev -- -H 0.0.0.0
 } 2>&1 | tee -a "$FRONTEND_LOG" "$COMBINED_LOG" &
 FRONTEND_PID=$!
 cd ..

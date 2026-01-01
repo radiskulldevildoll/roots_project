@@ -26,5 +26,8 @@ export const endpoints = {
     detail: (id) => `${API_BASE_URL}/api/media/${id}/`,
     byPerson: (id) => `${API_BASE_URL}/api/media/by_person/?person_id=${id}`,
     byType: (type) => `${API_BASE_URL}/api/media/by_type/?type=${type}`,
+  },
+  feedback: {
+    list: `${API_BASE_URL}/api/feedback/`,
   }
 };

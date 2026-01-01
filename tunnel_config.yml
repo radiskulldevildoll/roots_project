@@ -1,0 +1,19 @@
+tunnel: 701cf14f-d137-486c-8d01-4e0396dc4f38
+credentials-file: /home/rodney/.cloudflared/701cf14f-d137-486c-8d01-4e0396dc4f38.json
+
+ingress:
+  - hostname: roots.pimpnation.org
+    path: /_next/*
+    service: http://localhost:3001
+  - hostname: roots.pimpnation.org
+    path: /api/*
+    service: http://localhost:8001
+  - hostname: roots.pimpnation.org
+    path: /admin/*
+    service: http://localhost:8001
+  - hostname: roots.pimpnation.org
+    path: /static/*
+    service: http://localhost:8001
+  - hostname: roots.pimpnation.org
+    service: http://localhost:3001
+  - service: http_status:404
