@@ -1,0 +1,21 @@
+name: Update Line Count Badge
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Update badge
+      uses: tomasbjerre/twc@v1.1.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        filename: README.md
+        badge: '![Lines of code](https://img.shields.io/badge/lines_of_code-{count}-blue)'
+        pattern: '!\[Lines of code\]\(https://img\.shields\.io/badge/lines_of_code-\d+-blue\)'
