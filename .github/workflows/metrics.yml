@@ -17,7 +17,7 @@ jobs:
           user: radiskulldevildoll
           repo: roots_project
           template: classic
-          base: header, activity, community, repositories, metadata
+          base: header, metadata
           config_timezone: America/Toronto
           plugin_lines: yes
           plugin_languages: yes
