@@ -15,6 +15,9 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
 
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = ['https://roots.pimpnation.org', 'http://localhost:3001']
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
